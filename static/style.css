@@ -1,0 +1,48 @@
+body{
+	font-family: sans-serif;
+	width: 80%;
+	margin: auto;
+}
+
+#chordtree{
+	margin: auto;
+}
+
+.tree_root{
+	margin: auto !important;
+	padding: 10px;
+	border: 2px solid black !important;
+	width: fit-content !important;
+	display: block !important;
+}
+
+
+.node{
+	display: inline-block;
+	padding: 2px;
+	border: 1px solid black;
+	margin: 1px;
+	color: gray;
+}
+
+.node.isLeaf{
+	color: darkgreen;
+
+}
+
+.chordname{
+	margin: auto;
+	width: 60px;
+	text-align: center;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	font-size: 1.5em;
+}
+
+.options{
+
+}
+
+.child_opt{
+	width: 40px;
+}

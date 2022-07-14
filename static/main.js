@@ -1,3 +1,5 @@
+const { createApp } = Vue
+
 MIDIREADY = false
 
 MIDI.loadPlugin({
@@ -11,13 +13,10 @@ MIDI.loadPlugin({
 			MIDIREADY = true	
 			MIDI.programChange(0,16,0)
 			MIDI.setVolume(0, 127);
-			//MIDI.noteOn(0, note, velocity, delay);
-			//MIDI.noteOff(0, note, delay + 5.75);
-			console.log("you should have heard something by now")
-			seq = RandomTree(7).getLeaves()
-			console.log(seq)
-			seq = seq.split(", ")
-			playSequence(seq, 2)
+			//seq = RandomTree(3).getLeaves()
+
+			//seq = seq.split(", ")
+			//playSequence(seq, 2)
 		}
     	
 });
@@ -33,13 +32,12 @@ function playChord(chord, start, duration){
 function playSequence(seq, duration){
 	for(i in seq){
 		c = seq[i]
-
 		playChord(c, duration*i, duration)
 	}
 
 }
 
-
+// {root:{function:[option1,option2], ...} ...}
 chord_rules = {
 	"C": {"c": ["F", "G"], "m": ["Am", "Em"], "s": ["Bdim", "Dm"]}, 
 	"Dm": {"c": ["Am", "G"], "m": ["Bdim", "F"], "s": ["Em", "C"]}, 
@@ -94,6 +92,16 @@ var nodeActions = {
 			this.children["L"].growTree(depth-1)
 			this.children["R"].growTree(depth-1)
 		}
+	},
+	addChild: function(choice){
+		if(this.children == null){
+			if(this.side == "R" || this.side == "root"){
+				this.children = {'L':createNode(choice, "L", this.rule), 'R':createNode(this.chord, "R", this.rule)}
+			}
+			else{
+				this.children = {'L':createNode(this.chord, "L", this.rule), 'R':createNode(choice, "R", this.rule)}
+			}
+		}
 	}
 }
 
@@ -105,9 +113,8 @@ function createNode(chord, side, exclude_rule){
 	else{
 		rule_choices = ["c", "m", "s"]
 		if(exclude_rule){
-
 			//Little machine to remove the parent rule from the options for a child rule
-			//hypothetically reducing the likelihood of repeating things
+			//hypothetically reducing the likelihood of repeating chords
 			rule_choices.splice(rule_choices.indexOf(exclude_rule),1)
 		}
 
@@ -118,11 +125,10 @@ function createNode(chord, side, exclude_rule){
 	node.chord = chord
 	node.rule = rule
 	node.side = side
+	node.options = chord_rules[chord][rule]
 	node.children = null	
 	return node
 }
-
-
 
 //get a random balanced tree of a given depth
 function RandomTree(depth){
@@ -131,8 +137,72 @@ function RandomTree(depth){
 	return tree
 }
 
+//above this it just works ya
 
-//seq1 = RandomTree(3).getLeaves()
-//seq2 = RandomTree(4).getLeaves()
-//seq3 = RandomTree(7).getLeaves()
+createApp({
+	template:`
+		<div class="main">
+		<button @click="playSeq()"> Play Sequence</button>
+		<div class="tree_root node"> 
+
+			<Node :node="root_node" />
+			
+		</div>
+		</div>
+	`,
+    data() {
+      return {
+        root_node:RandomTree(0)
+    	}
+	},
+	methods:{
+		playSeq(){
+			seq = this.root_node.getLeaves()
+			console.log(seq)
+			seq = seq.split(", ")
+			playSequence(seq, 2)
+		}
+	}
+}).component("Node",{
+  	props:['node'],
+  	setup(props) {
+  		
+    	// setup() receives props as the first argument.
+    	//console.log(props.node)
+  	},
+  	template:`
+  		<div class="node" :class="{ isLeaf: isLeaf() }"> 
+  			<div class="chordName"> {{node.chord}} </div>
+			<div v-if='isLeaf()' class="options"> 
+				<button class="child_opt" @click="spawnChildren(0)">{{node.options[0]}}</button>
+				<button class="child_opt" @click="spawnChildren(1)">{{node.options[1]}}</button>
+			</div>
+			<div v-else> 
+				<Node :node="leftChild()" />
+				<Node :node="rightChild()" />
+			</div>
+		</div>`,
+  	data(){
+  		return {
+
+  		}
+  	},
+  	methods: {
+		isLeaf:function(){
+			return this.node.children == null
+		},
+		leftChild:function(){
+			return this.node.children.L
+		},
+		rightChild:function(){
+			return this.node.children.R
+		},
+		spawnChildren:function(option){
+			this.node.addChild(this.node.options[option])
+		}
+
+	}
+}).mount('#chordtree')
+
+
 
