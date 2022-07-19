@@ -142,7 +142,7 @@ function RandomTree(depth){
 createApp({
 	template:`
 		<div class="main">
-		<button @click="playSeq()"> Play Sequence</button>
+		<button @click="playSeq()"> Play Sequence</button> <button @click="resetTree()"> Reset Tree </button>
 		<div class="tree_root node"> 
 
 			<Node :node="root_node" />
@@ -161,6 +161,9 @@ createApp({
 			console.log(seq)
 			seq = seq.split(", ")
 			playSequence(seq, 2)
+		},
+		resetTree(){
+			this.root_node=RandomTree(0)
 		}
 	}
 }).component("Node",{
