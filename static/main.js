@@ -95,18 +95,35 @@ var nodeActions = {
 	},
 	addChild: function(choice){
 		if(this.children == null){
-			if(this.side == "R" || this.side == "root"){
-				this.children = {'L':createNode(choice, "L", this.rule), 'R':createNode(this.chord, "R", this.rule)}
+			
+
+			if(this.limb == "root"){
+				this.children = {
+					'L':createNode(choice, "L", this.rule, 'L', this.depth+1), 
+					'R':createNode(this.chord, "R", this.rule, 'R', this.depth+1)}
+			}
+			else if(this.limb == "R"){
+				this.children = {
+					'L':createNode(choice, "L", this.rule, this.limb, this.depth+1), 
+					'R':createNode(this.chord, "R", this.rule, this.limb, this.depth+1)}
 			}
 			else{
-				this.children = {'L':createNode(this.chord, "L", this.rule), 'R':createNode(choice, "R", this.rule)}
+				this.children = {
+					'L':createNode(this.chord, "L", this.rule, this.limb, this.depth+1),
+					'R':createNode(choice, "R", this.rule, this.limb, this.depth+1)}
 			}
 		}
 	}
 }
 
 //create a node- root node has one unique behavior otherwise we just make a random function choice
-function createNode(chord, side, exclude_rule){
+function createNode(chord, side, exclude_rule, limb, depth){
+	if(limb==null){
+		limb = "root"
+	}
+	if(depth == null){
+		depth = 0
+	}
 	if(side == "root"){
 		rule = "c"
 	}
@@ -122,6 +139,8 @@ function createNode(chord, side, exclude_rule){
 	}
 
 	let node = Object.create(nodeActions)
+	node.depth = depth
+	node.limb = limb
 	node.chord = chord
 	node.rule = rule
 	node.side = side
@@ -142,7 +161,21 @@ function RandomTree(depth){
 createApp({
 	template:`
 		<div class="main">
-		<button @click="playSeq()"> Play Sequence</button> <button @click="resetTree()"> Reset Tree </button>
+			<button @click="playSeq()"> Play Sequence</button> 
+			<button @click="resetTree()"> Reset Tree </button>
+			<button @click="randomTree()"> Grow Random Tree </button>
+			<select v-model="depth">
+				<option disabled value="">of Depth</option>
+    			<option>1</option>
+			    <option>2</option>
+    			<option>3</option>
+    			<option>4</option>
+    			<option>5</option>
+    			<option>6</option>
+    			<option>7</option>
+    			<option>8</option>
+
+			</select>
 		<div class="tree_root node"> 
 
 			<Node :node="root_node" />
@@ -152,7 +185,8 @@ createApp({
 	`,
     data() {
       return {
-        root_node:RandomTree(0)
+        root_node:RandomTree(0),
+        depth:0
     	}
 	},
 	methods:{
@@ -164,6 +198,9 @@ createApp({
 		},
 		resetTree(){
 			this.root_node=RandomTree(0)
+		},
+		randomTree(){
+			this.root_node=RandomTree(this.depth)
 		}
 	}
 }).component("Node",{
