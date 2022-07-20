@@ -65,13 +65,8 @@ var nodeActions = {
 		if(this.children == null){
 			options = chord_rules[this.chord][this.rule]
 			choice = options[Math.floor(Math.random()*2)]
-			//Ok so the existing chord always goes to the side it's already on
-			if(this.side == "R" || this.side == "root"){
-				this.children = {'L':createNode(choice, "L", this.rule), 'R':createNode(this.chord, "R", this.rule)}
-			}
-			else{
-				this.children = {'L':createNode(this.chord, "L", this.rule), 'R':createNode(choice, "R", this.rule)}
-			}
+
+			this.addChild(choice)
 		}
 	},
 
