@@ -109,7 +109,9 @@ var nodeActions = {
 			}
 		}
 	},
-
+	isLeaf:function(){
+		return this.children == null
+	},
 	getSelected: function(){
 		if(this.selected){
 			return this
@@ -120,7 +122,7 @@ var nodeActions = {
 		else{
 			l = this.children.L.getSelected()
 			r = this.children.R.getSelected()
-			console.log(this.depth, r?r.chord:r, l?l.chord:l)
+			
 			if(l!=null){
 				return l
 			}
@@ -211,8 +213,22 @@ createApp({
 		<div class="bottomBar">
 			<div class="modalMenu">
 				<div v-if="selected != null">
-				Something Selected
+					Something Selected
 					{{this.selected.chord}}
+					<div v-if='selected.isLeaf()'>
+						<div class="options"> 
+							<button class="child_opt" @click.stop="selected.addChild(selected.options[0])" >
+								{{selected.options[0]}}
+							</button>
+							<button class="child_opt" @click.stop="selected.addChild(selected.options[1])" >
+								{{selected.options[1]}}
+							</button>
+						</div>
+					</div>
+					<div v-if="!selected.isLeaf()">
+						NOT LEAF
+					</div>
+				
 				</div>
 			</div>	
 		</div>
@@ -234,6 +250,7 @@ createApp({
 		},
 		resetTree(){
 			this.root_node=RandomTree(0)
+			this.selected=null
 		},
 		randomTree(){
 			this.root_node=RandomTree(this.depth)
