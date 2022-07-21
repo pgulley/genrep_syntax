@@ -108,6 +108,36 @@ var nodeActions = {
 					'R':createNode(choice, "R", this.rule, this.limb, this.depth+1)}
 			}
 		}
+	},
+
+	getSelected: function(){
+		if(this.selected){
+			return this
+		}
+		else if (this.children == null){
+			return null
+		}
+		else{
+			l = this.children.L.getSelected()
+			r = this.children.R.getSelected()
+			if(l!=null){
+				return l
+			}
+			else if(r!==null){
+				return r
+			}
+			else{
+				return null
+			}
+		}
+	},
+	deselectChildren: function(){
+		this.selected = false
+		if(this.children != null){
+			this.children.L.deselectChildren()
+			this.children.R.deselectChildren()
+		}
+		
 	}
 }
 
@@ -140,7 +170,8 @@ function createNode(chord, side, exclude_rule, limb, depth){
 	node.rule = rule
 	node.side = side
 	node.options = chord_rules[chord][rule]
-	node.children = null	
+	node.children = null
+	node.selected = false
 	return node
 }
 
@@ -173,7 +204,7 @@ createApp({
 			</select>
 		<div class="tree_root node"> 
 
-			<Node :node="root_node" />
+			<Node :node="root_node"  @child-selected="childSelected()"/>
 			
 		</div>
 		</div>
@@ -196,7 +227,11 @@ createApp({
 		},
 		randomTree(){
 			this.root_node=RandomTree(this.depth)
+		},
+		childSelected(){
+			console.log("AHAH")
 		}
+
 	}
 }).component("Node",{
   	props:['node'],
@@ -206,20 +241,27 @@ createApp({
     	//console.log(props.node)
   	},
   	template:`
-  		<div class="node" :class="{ isLeaf: isLeaf() }"> 
+  		<div class="node" :class="{ isLeaf: isLeaf(), isSelected: this.node.selected }" @click.stop="toggleSelected()"> 
+
   			<div class="chordName"> {{node.chord}} </div>
+
 			<div v-if='isLeaf()' class="options"> 
-				<button class="child_opt" @click="spawnChildren(0)">{{node.options[0]}}</button>
-				<button class="child_opt" @click="spawnChildren(1)">{{node.options[1]}}</button>
+				<button class="child_opt" @click.stop="spawnChildren(0)" >
+					{{node.options[0]}}
+				</button>
+				<button class="child_opt" @click.stop="spawnChildren(1)" >
+					{{node.options[1]}}
+				</button>
 			</div>
+
 			<div v-else> 
-				<Node :node="leftChild()" />
-				<Node :node="rightChild()" />
+				<Node :node="leftChild()" @child-selected="childSelected(0)"/>
+				<Node :node="rightChild()" @child-selected="childSelected(1)"/>
 			</div>
 		</div>`,
   	data(){
   		return {
-
+  		
   		}
   	},
   	methods: {
@@ -234,8 +276,26 @@ createApp({
 		},
 		spawnChildren:function(option){
 			this.node.addChild(this.node.options[option])
-		}
-
+		},
+		toggleSelected:function(){
+			this.$emit("child-selected", this.node)
+			this.node.selected = !this.node.selected
+			if(! this.isLeaf()){
+				this.rightChild().deselectChildren()
+				this.leftChild().deselectChildren()
+			}
+			
+		},
+		childSelected:function(side){
+			this.$emit("child-selected")
+			this.node.selected = false
+			if(side==0){
+				this.rightChild().deselectChildren()
+			}
+			else{
+				this.leftChild().deselectChildren()
+			}
+		},
 	}
 }).mount('#chordtree')
 

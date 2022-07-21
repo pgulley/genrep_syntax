@@ -25,11 +25,16 @@ body{
 	border: 1px solid black;
 	margin: 1px;
 	color: gray;
+	background: white;
 }
 
 .node.isLeaf{
 	color: darkgreen;
 
+}
+
+.node.isSelected{
+	background: #2c422c;
 }
 
 .chordname{
