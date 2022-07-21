@@ -120,10 +120,11 @@ var nodeActions = {
 		else{
 			l = this.children.L.getSelected()
 			r = this.children.R.getSelected()
+			console.log(this.depth, r?r.chord:r, l?l.chord:l)
 			if(l!=null){
 				return l
 			}
-			else if(r!==null){
+			else if(r!=null){
 				return r
 			}
 			else{
@@ -204,15 +205,24 @@ createApp({
 			</select>
 		<div class="tree_root node"> 
 
-			<Node :node="root_node"  @child-selected="childSelected()"/>
+			<Node :node="root_node"  @child-selected="childSelected($event)"/>
 			
+		</div>
+		<div class="bottomBar">
+			<div class="modalMenu">
+				<div v-if="selected != null">
+				Something Selected
+					{{this.selected.chord}}
+				</div>
+			</div>	
 		</div>
 		</div>
 	`,
     data() {
       return {
         root_node:RandomTree(0),
-        depth:0
+        depth:0,
+        selected:null
     	}
 	},
 	methods:{
@@ -228,8 +238,14 @@ createApp({
 		randomTree(){
 			this.root_node=RandomTree(this.depth)
 		},
-		childSelected(){
-			console.log("AHAH")
+		childSelected(child){
+
+			
+			this.selected=child
+			console.log("..............................")
+		},
+		childWait(){
+			setTimeout(this.childSelected, 1000)
 		}
 
 	}
@@ -255,8 +271,8 @@ createApp({
 			</div>
 
 			<div v-else> 
-				<Node :node="leftChild()" @child-selected="childSelected(0)"/>
-				<Node :node="rightChild()" @child-selected="childSelected(1)"/>
+				<Node :node="leftChild()" @child-selected="childSelected(0, $event)"/>
+				<Node :node="rightChild()" @child-selected="childSelected(1, $event)"/>
 			</div>
 		</div>`,
   	data(){
@@ -278,16 +294,18 @@ createApp({
 			this.node.addChild(this.node.options[option])
 		},
 		toggleSelected:function(){
-			this.$emit("child-selected", this.node)
 			this.node.selected = !this.node.selected
+
+			this.$emit("child-selected", this.node.selected?this.node:null)
+
 			if(! this.isLeaf()){
 				this.rightChild().deselectChildren()
 				this.leftChild().deselectChildren()
 			}
 			
 		},
-		childSelected:function(side){
-			this.$emit("child-selected")
+		childSelected:function(side, child){
+			this.$emit("child-selected", child)
 			this.node.selected = false
 			if(side==0){
 				this.rightChild().deselectChildren()
