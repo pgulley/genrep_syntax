@@ -72,6 +72,9 @@ var nodeActions = {
 
 	//just navigate the tree and get the 'leaf' sequence
 	getLeaves: function(){
+		if(this.muted){
+			return "mute"
+		}
 		if(this.children == null){
 			return this.chord
 		}
@@ -111,6 +114,16 @@ var nodeActions = {
 	},
 	isLeaf:function(){
 		return this.children == null
+	},
+	toggleMuted:function(){
+		this.propogateMute(!this.muted)
+	},
+	propogateMute:function(isMuted){
+		this.muted = isMuted
+		if(!this.isLeaf()){
+			this.children.L.propogateMute(isMuted)
+			this.children.R.propogateMute(isMuted)
+		}
 	},
 	getSelected: function(){
 		if(this.selected){
@@ -175,6 +188,7 @@ function createNode(chord, side, exclude_rule, limb, depth){
 	node.options = chord_rules[chord][rule]
 	node.children = null
 	node.selected = false
+	node.muted = false
 	return node
 }
 
@@ -213,10 +227,12 @@ createApp({
 		<div class="bottomBar">
 			<div class="modalMenu">
 				<div v-if="selected != null">
-					Something Selected
+					Node:
 					{{this.selected.chord}}
+					<button @click.stop="selected.toggleMuted()"> Toggle Mute Branch </button> 
 					<div v-if='selected.isLeaf()'>
 						<div class="options"> 
+							Add chord to {{selected.limb=="L"?'right':'left'}} side
 							<button class="child_opt" @click.stop="selected.addChild(selected.options[0])" >
 								{{selected.options[0]}}
 							</button>
@@ -226,7 +242,7 @@ createApp({
 						</div>
 					</div>
 					<div v-if="!selected.isLeaf()">
-						NOT LEAF
+						placeholder
 					</div>
 				
 				</div>
@@ -243,28 +259,25 @@ createApp({
 	},
 	methods:{
 		playSeq(){
+			//get the sequence of unmuted leaves
 			seq = this.root_node.getLeaves()
-			console.log(seq)
 			seq = seq.split(", ")
+			seq = seq.filter(function(i){return i!="mute"})
 			playSequence(seq, 2)
 		},
 		resetTree(){
+			//reset to a single node tree
 			this.root_node=RandomTree(0)
 			this.selected=null
 		},
 		randomTree(){
+			//generate a random tree of a given depth
 			this.root_node=RandomTree(this.depth)
 		},
 		childSelected(child){
-
-			
+			//the top level of the selection 'bubbling' toggle
 			this.selected=child
-			console.log("..............................")
 		},
-		childWait(){
-			setTimeout(this.childSelected, 1000)
-		}
-
 	}
 }).component("Node",{
   	props:['node'],
@@ -274,11 +287,13 @@ createApp({
     	//console.log(props.node)
   	},
   	template:`
-  		<div class="node" :class="{ isLeaf: isLeaf(), isSelected: this.node.selected }" @click.stop="toggleSelected()"> 
+  		<div class="node" :class="{ isLeaf: isLeaf(), 
+  									isSelected: this.node.selected,
+  									isMuted:this.node.muted }" @click.stop="toggleSelected()"> 
 
   			<div class="chordName"> {{node.chord}} </div>
 
-			<div v-if='isLeaf()' class="options"> 
+			<div v-if='isLeaf()' class="LEAFoptions"> 
 				<button class="child_opt" @click.stop="spawnChildren(0)" >
 					{{node.options[0]}}
 				</button>
@@ -321,6 +336,7 @@ createApp({
 			}
 			
 		},
+
 		childSelected:function(side, child){
 			this.$emit("child-selected", child)
 			this.node.selected = false
@@ -331,6 +347,7 @@ createApp({
 				this.leftChild().deselectChildren()
 			}
 		},
+
 	}
 }).mount('#chordtree')
 

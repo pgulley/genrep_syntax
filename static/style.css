@@ -11,7 +11,7 @@ body{
 .tree_root{
 
 	margin: auto !important;
-	margin-top: 20px;
+	margin-top: 20px !important;
 	padding: 10px;
 	border: 2px solid black !important;
 	width: fit-content !important;
@@ -28,13 +28,27 @@ body{
 	background: white;
 }
 
+.LEAFoptions{
+	display: none;
+}
+
 .node.isLeaf{
 	color: darkgreen;
-
 }
 
 .node.isSelected{
-	background: #2c422c;
+	border-color: red;
+}
+
+.node.isMuted,
+.node.isMuted > * {
+	background: #b0b0b0;
+	border-color: grey;
+}
+
+.node.isMuted.isSelected{
+	background: #b0b0b0;
+	border-color: red;
 }
 
 .chordname{
