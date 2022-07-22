@@ -22,6 +22,17 @@ MIDI.loadPlugin({
 });
 
 
+lineOptions = {
+	startPlug:"behind",
+	endPlug:"behind",
+	color:"green",
+	path:"straight",
+	size:2,
+	startSocket:'bottom',
+	endSocket:'top'
+}
+
+
 function playChord(chord, start, duration){
 	chord_word = chord_spellings[chord]
 	midichord = chord_word.map(function(c){return MIDI.keyToNote[c]})
@@ -58,6 +69,7 @@ chord_spellings = {
 	"Bdim":['B4','D4','F4']
 }
 
+lines = []
 
 var nodeActions = {
 	///This is just to demo how growing the tree functions- ultimately these choices are user driven
@@ -92,25 +104,27 @@ var nodeActions = {
 		}
 	},
 	addChild: function(choice){
+		
 		if(this.children == null){
 			
-
 			if(this.limb == "root"){
 				this.children = {
-					'L':createNode(choice, "L", this.rule, 'L', this.depth+1), 
-					'R':createNode(this.chord, "R", this.rule, 'R', this.depth+1)}
+					'L':createNode(choice, "L", this.rule, 'L', this.depth+1, this.id+'L'), 
+					'R':createNode(this.chord, "R", this.rule, 'R', this.depth+1, this.id+'R')}
 			}
 			else if(this.limb == "R"){
 				this.children = {
-					'L':createNode(choice, "L", this.rule, this.limb, this.depth+1), 
-					'R':createNode(this.chord, "R", this.rule, this.limb, this.depth+1)}
+					'L':createNode(choice, "L", this.rule, this.limb, this.depth+1, this.id+'L'), 
+					'R':createNode(this.chord, "R", this.rule, this.limb, this.depth+1, this.id+'R')}
 			}
 			else{
 				this.children = {
-					'L':createNode(this.chord, "L", this.rule, this.limb, this.depth+1),
-					'R':createNode(choice, "R", this.rule, this.limb, this.depth+1)}
+					'L':createNode(this.chord, "L", this.rule, this.limb, this.depth+1, this.id+'L'),
+					'R':createNode(choice, "R", this.rule, this.limb, this.depth+1, this.id+'R')}
 			}
+
 		}
+
 	},
 	isLeaf:function(){
 		return this.children == null
@@ -153,12 +167,34 @@ var nodeActions = {
 			this.children.L.deselectChildren()
 			this.children.R.deselectChildren()
 		}
-		
+	},
+	drawBranch(){
+		if(!this.isLeaf()){
+			this.leftLine = new LeaderLine(
+				document.getElementById(this.id),
+				document.getElementById(this.id+"L"),
+				lineOptions)
+
+			this.rightLine = new LeaderLine(
+				document.getElementById(this.id), 
+				document.getElementById(this.id+"R"),
+				lineOptions)
+			this.children.L.drawBranch()
+			this.children.R.drawBranch()
+		}
+	},
+	eraseBranches(){
+		if(!this.isLeaf()){
+			this.leftLine ? this.leftLine.remove():null
+			this.rightLine ? this.rightLine.remove():null
+			this.children.L.eraseBranches()
+			this.children.R.eraseBranches()
+		}
 	}
 }
 
 //create a node- root node has one unique behavior otherwise we just make a random function choice
-function createNode(chord, side, exclude_rule, limb, depth){
+function createNode(chord, side, exclude_rule, limb, depth, id){
 	if(limb==null){
 		limb = "root"
 	}
@@ -167,6 +203,9 @@ function createNode(chord, side, exclude_rule, limb, depth){
 	}
 	if(side == "root"){
 		rule = "c"
+	}
+	if(id == null){
+		id = "R"
 	}
 	else{
 		rule_choices = ["c", "m", "s"]
@@ -180,6 +219,7 @@ function createNode(chord, side, exclude_rule, limb, depth){
 	}
 
 	let node = Object.create(nodeActions)
+	node.id = id
 	node.depth = depth
 	node.limb = limb
 	node.chord = chord
@@ -189,6 +229,8 @@ function createNode(chord, side, exclude_rule, limb, depth){
 	node.children = null
 	node.selected = false
 	node.muted = false
+	node.leftLine = null
+	node.rightLine = null
 	return node
 }
 
@@ -207,21 +249,19 @@ createApp({
 			<button @click="playSeq()"> Play Sequence</button> 
 			<button @click="resetTree()"> Reset Tree </button>
 			<button @click="randomTree()"> Grow Random Tree </button>
+			
 			<select v-model="depth">
 				<option disabled value="">of Depth</option>
     			<option>1</option>
 			    <option>2</option>
     			<option>3</option>
     			<option>4</option>
-    			<option>5</option>
-    			<option>6</option>
-    			<option>7</option>
-    			<option>8</option>
 
 			</select>
+	
 		<div class="tree_root node"> 
 
-			<Node :node="root_node"  @child-selected="childSelected($event)"/>
+			<Node :node="root_node"  @child-selected="childSelected($event)" @tree-change="treeChange()"/>
 			
 		</div>
 		<div class="bottomBar">
@@ -233,10 +273,10 @@ createApp({
 					<div v-if='selected.isLeaf()'>
 						<div class="options"> 
 							Add chord to {{selected.limb=="L"?'right':'left'}} side
-							<button class="child_opt" @click.stop="selected.addChild(selected.options[0])" >
+							<button class="child_opt" @click.stop="selected.addChild(selected.options[0]);" >
 								{{selected.options[0]}}
 							</button>
-							<button class="child_opt" @click.stop="selected.addChild(selected.options[1])" >
+							<button class="child_opt" @click.stop="selected.addChild(selected.options[1]);" >
 								{{selected.options[1]}}
 							</button>
 						</div>
@@ -267,31 +307,37 @@ createApp({
 		},
 		resetTree(){
 			//reset to a single node tree
+			this.root_node.eraseBranches()
 			this.root_node=RandomTree(0)
 			this.selected=null
 		},
 		randomTree(){
 			//generate a random tree of a given depth
+			this.root_node.eraseBranches()
 			this.root_node=RandomTree(this.depth)
 		},
 		childSelected(child){
 			//the top level of the selection 'bubbling' toggle
 			this.selected=child
 		},
+		drawTree(){
+			this.root_node.eraseBranches()
+
+			this.root_node.drawBranch()
+
+		},
+		treeChange(){
+			this.drawTree()
+		}
 	}
 }).component("Node",{
   	props:['node'],
-  	setup(props) {
-  		
-    	// setup() receives props as the first argument.
-    	//console.log(props.node)
-  	},
   	template:`
   		<div class="node" :class="{ isLeaf: isLeaf(), 
   									isSelected: this.node.selected,
   									isMuted:this.node.muted }" @click.stop="toggleSelected()"> 
 
-  			<div class="chordName"> {{node.chord}} </div>
+  			<div class="chordName" :id="this.node.id"> {{node.chord}} </div>
 
 			<div v-if='isLeaf()' class="LEAFoptions"> 
 				<button class="child_opt" @click.stop="spawnChildren(0)" >
@@ -303,14 +349,12 @@ createApp({
 			</div>
 
 			<div v-else> 
-				<Node :node="leftChild()" @child-selected="childSelected(0, $event)"/>
-				<Node :node="rightChild()" @child-selected="childSelected(1, $event)"/>
+				<Node :node="leftChild()" @child-selected="childSelected(0, $event)" @tree-change="treeChange($event)"/>
+				<Node :node="rightChild()" @child-selected="childSelected(1, $event)" @tree-change="treeChange($event)"/>
 			</div>
 		</div>`,
-  	data(){
-  		return {
-  		
-  		}
+  	mounted:function(){
+  		this.$emit("tree-change", null)
   	},
   	methods: {
 		isLeaf:function(){
@@ -324,6 +368,8 @@ createApp({
 		},
 		spawnChildren:function(option){
 			this.node.addChild(this.node.options[option])
+			this.$emit("tree-change")
+			console.log('tree change?')
 		},
 		toggleSelected:function(){
 			this.node.selected = !this.node.selected
@@ -336,7 +382,6 @@ createApp({
 			}
 			
 		},
-
 		childSelected:function(side, child){
 			this.$emit("child-selected", child)
 			this.node.selected = false
@@ -347,6 +392,10 @@ createApp({
 				this.leftChild().deselectChildren()
 			}
 		},
+		treeChange:function(){
+			//this is just a bubbler
+			this.$emit("tree-change")
+		}
 
 	}
 }).mount('#chordtree')

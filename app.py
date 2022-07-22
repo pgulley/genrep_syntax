@@ -10,6 +10,7 @@ def main():
 		css = url_for("static", filename="style.css"),
 		base64_loc = url_for('static', filename="base64binary.js"),
 		mainjs_loc=url_for("static", filename="main.js"),
-		midi_loc = url_for("static", filename="midi.min.js")
+		midi_loc = url_for("static", filename="midi.min.js"),
+		line_loc = url_for("static", filename="leader-line.min.js")
 	)
 

@@ -43,3 +43,4 @@ DONE:
 	Grow Random Tree
 	Modal Options Menu
 	Branch Muting
+	Tree has branches now, not deco cages
