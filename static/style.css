@@ -25,7 +25,7 @@ body{
 	border: 1px solid #fff0;
 	margin: 1px;
 	color: gray;
-	background: white;
+	background: transparent;
 	
 }
 
@@ -38,20 +38,25 @@ body{
 }
 
 .node.isSelected{
-	border-color: green;
+	border-radius: 10px;
+	background: aliceblue;
 }
 
-.node.isMuted,
-.node.isMuted > * {
+.node.isMuted, {
 	background: #b0b0b0;
 	
 }
+
 
 .node.isMuted.isSelected{
 	background: #b0b0b0;
 
 }
 
+.node.isMuted > .chordname{
+	background: #e4eada !important;
+	color: gray !important;
+}
 
 
 .chordname{
