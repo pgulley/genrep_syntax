@@ -26,6 +26,7 @@ body{
 	margin: 1px;
 	color: gray;
 	background: white;
+	
 }
 
 .LEAFoptions{
@@ -51,6 +52,8 @@ body{
 
 }
 
+
+
 .chordname{
 	margin: auto;
 	width: 60px;
@@ -61,19 +64,35 @@ body{
 	padding: 3px;
 	border-radius: 5px;
 	background-color: #c7e39b;
+	-webkit-transition: all 0.5s ease;
+    -moz-transition: all 0.5s ease;
+    -o-transition: all 0.5s ease;
+    transition: all 0.5s ease;
+}
+
+.chordname.HL{
+	background-color: #35e1b1;
 }
 
 .options{
 
 }
 
+.leafButton{
+
+}
+
 .child_opt{
-	width: 40px;
+	width: 100px;
+}
+
+.preview{
+
 }
 
 .bottomBar{
 	position: absolute;
-	top: 90%;
+	top: 80%;
 }
 
 .modalMenu{

@@ -4,19 +4,11 @@ MIDIREADY = false
 
 MIDI.loadPlugin({
 	soundfontUrl: "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/",
-    instrument: "drawbar_organ", // or the instrument code 1 (aka the default)
+    instruments: ["acoustic_grand_piano","drawbar_organ"], // or the instrument code 1 (aka the default)
     onsuccess: function() { 
-    		var delay = 0; // play one note every quarter second
-			var note = 50; // the MIDI note
-			var velocity = 127; // how hard the note hits
-			// play the note
 			MIDIREADY = true	
 			MIDI.programChange(0,16,0)
 			MIDI.setVolume(0, 127);
-			//seq = RandomTree(3).getLeaves()
-
-			//seq = seq.split(", ")
-			//playSequence(seq, 2)
 		}
     	
 });
@@ -41,11 +33,46 @@ function playChord(chord, start, duration){
 }
 
 function playSequence(seq, duration){
+	MIDI.programChange(0,16,0)
 	for(i in seq){
 		c = seq[i]
 		playChord(c, duration*i, duration)
 	}
+}
 
+function playPreview(seq, duration){
+	MIDI.programChange(0,0,0)
+	for(i in seq){
+		c = seq[i]
+		playChord(c, duration*i, duration)
+	}
+}
+
+function animateSequence(idSeq, duration){
+	for(i in idSeq){
+		id = idSeq[i]
+		setTimeout(doAnimation, duration*i*1000, id)
+	}
+}
+
+function playAndAnimateSeq(chordS, idS, duration){
+	MIDI.programChange(0,16,0)
+	for(i in chordS){
+		c = chordS[i]
+		id = idS[i]
+		//playChord(c, duration*i, duration)
+		setTimeout(doPlayAndAnimate, duration*i*1000, id, c, duration)
+	}
+}
+
+
+function doPlayAndAnimate(id, chord, duration){
+	chord_word = chord_spellings[chord]
+	midichord = chord_word.map(function(c){return MIDI.keyToNote[c]})
+	MIDI.chordOn(0, midichord, 127, 0)
+	$(`#${id}`).addClass("HL")
+	MIDI.chordOff(0, midichord, duration)
+	setTimeout(function(){$(`#${id}`).removeClass("HL")}, duration*1000)
 }
 
 // {root:{function:[option1,option2], ...} ...}
@@ -60,13 +87,13 @@ chord_rules = {
 }
 
 chord_spellings = {
-	"C":['C4','E4','G4'],
-	"Dm":['D4','F4','A4'],
-	"Em":['E4','G4','B4'],
-	"F":['F4','A4','C4'],
-	"G":['G4','B4','D4'],
-	"Am":['A4','C4','E4'],
-	"Bdim":['B4','D4','F4']
+	"C":["C3",'C4','E4','G4'],
+	"Dm":["D3",'D4','F4','A4'],
+	"Em":["E3", 'E4','G4','B4'],
+	"F":["F3",'F4','A4','C4'],
+	"G":["G3",'G4','B4','D4'],
+	"Am":["A3",'A4','C4','E4'],
+	"Bdim":["B3", 'B4','D4','F4']
 }
 
 lines = []
@@ -83,15 +110,20 @@ var nodeActions = {
 	},
 
 	//just navigate the tree and get the 'leaf' sequence
-	getLeaves: function(){
+	getLeaves: function(type){
 		if(this.muted){
 			return "mute"
 		}
 		if(this.children == null){
-			return this.chord
+			if(type=="chord"){
+				return this.chord
+			}
+			else if(type=="id"){
+				return this.id
+			}
 		}
 		else{
-			return `${this.children["L"].getLeaves()}, ${this.children["R"].getLeaves()}`
+			return `${this.children["L"].getLeaves(type)}, ${this.children["R"].getLeaves(type)}`
 		}
 	},
 
@@ -265,28 +297,9 @@ createApp({
 			
 		</div>
 		<div class="bottomBar">
-			<div class="modalMenu">
-				<div v-if="selected != null">
-					Node:
-					{{this.selected.chord}}
-					<button @click.stop="selected.toggleMuted()"> Toggle Mute Branch </button> 
-					<div v-if='selected.isLeaf()'>
-						<div class="options"> 
-							Add chord to {{selected.limb=="L"?'right':'left'}} side
-							<button class="child_opt" @click.stop="selected.addChild(selected.options[0]);" >
-								{{selected.options[0]}}
-							</button>
-							<button class="child_opt" @click.stop="selected.addChild(selected.options[1]);" >
-								{{selected.options[1]}}
-							</button>
-						</div>
-					</div>
-					<div v-if="!selected.isLeaf()">
-						placeholder
-					</div>
-				
-				</div>
-			</div>	
+			
+			<treeMenu :selected="this.selected"/>
+		
 		</div>
 		</div>
 	`,
@@ -300,10 +313,15 @@ createApp({
 	methods:{
 		playSeq(){
 			//get the sequence of unmuted leaves
-			seq = this.root_node.getLeaves()
+			seq = this.root_node.getLeaves('chord')
 			seq = seq.split(", ")
 			seq = seq.filter(function(i){return i!="mute"})
-			playSequence(seq, 2)
+
+			idseq = this.root_node.getLeaves("id")
+			idseq = idseq.split(", ")
+			idseq = idseq.filter(function(i){return i!="mute"})
+
+			playAndAnimateSeq(seq, idseq, 2)
 		},
 		resetTree(){
 			//reset to a single node tree
@@ -396,6 +414,71 @@ createApp({
 			//this is just a bubbler
 			this.$emit("tree-change")
 		}
+
+	}
+}).component("treeMenu", {
+	props:["selected"],
+	template:`<div class="modalMenu">
+				<div v-if="selected != null">
+					Node:
+					{{this.selected.chord}}
+					<button @click.stop="muteBranch()"> Toggle Mute Branch </button> 
+
+					<div v-if='selected.isLeaf()'>
+						<div class="options"> 
+							Add chord to {{selected.limb=="L"?'right':'left'}} side
+							
+
+							<div class="leafButton">
+								{{selected.options[0]}}
+								<button class="child_opt" @click.stop="addChild(0)" >
+									Choose
+								</button>
+								<button class="preview" @click.stop="previewChild(0)"> 
+									Preview
+								</button>
+							</div>
+						
+							<div class="leafButton">	
+								{{selected.options[1]}}
+								<button class="child_opt" @click.stop="addChild(1)" >
+									Choose
+								</button>
+								<button class="preview" @click.stop="previewChild(1)"> 
+									Preview
+								</button>
+							</div>
+						</div>
+					</div>
+					<div v-if="!selected.isLeaf()">
+						<button @click.stop="playBranch()"> Play Branch </button>
+					</div>
+				</div>
+			</div>
+				`,
+	methods:{
+		addChild:function(side){
+			this.selected.addChild(this.selected.options[side])
+		},
+		muteBranch:function(){
+			this.selected.toggleMuted()
+		},
+		playBranch: function(){
+			seq = this.selected.getLeaves("chord")
+			seq = seq.split(", ")
+			seq = seq.filter(function(i){return i!="mute"})
+
+			idseq = this.selected.getLeaves("id")
+			idseq = idseq.split(", ")
+			idseq = idseq.filter(function(i){return i!="mute"})
+			
+			playAndAnimateSeq(seq, idseq, 2)
+
+		},
+		previewChild: function(side){
+			newChord = this.selected.options[side]
+			playPreview([newChord], 2)
+		},
 
 	}
 }).mount('#chordtree')
